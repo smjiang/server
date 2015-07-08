@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include "httpserver.h"
 #include "NetworkInterface.h"
+#include "Db.h"
 #include "Log.h"
 int g_debug = 0;
 CHttpServerMgr g_httpServer;
@@ -53,7 +54,22 @@ int main(int argc,char *argv[])
 		CLog::getInstance()->error("network init fail");
 		return 0;
 	}
-	
+
+	if(!CDbInterface::Instance()->Init())
+	{
+		return 0;
+	}
+
+	char* openID = "WX1234567890";
+	char* equipmentID = "UR987654321";
+	char* username = "andy";
+	CDbInterface::Instance()->InsertUserTable(equipmentID,username);
+	int ret = CDbInterface::Instance()->InsertWX2UserTable(openID,equipmentID);
+	if(1062 == ret)
+	{
+		CDbInterface::Instance()->DelWX2UserTable(openID);
+	}
+
 	while(true)
 	{
 		pause();
@@ -74,6 +90,7 @@ void signal_handler(int sig)
 	case SIGHUP:
 		g_httpServer.stop();
 		CNetworkInterface::Instance()->Stop();
+		CDbInterface::Instance()->DBDisConnect();
 		exit(0);
 		break;
 	case SIGALRM:

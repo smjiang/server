@@ -643,7 +643,7 @@ void CHttpServer::SendToDatabase(int i)
 void* CHttpServer::Routine(void* pvoid)
 {
 	CHttpServer* psvr = (CHttpServer*)pvoid;
-	printf("httpserver start\n");
+	CLog::getInstance()->info("httpserver start");
 	while(psvr->m_status)
 	{
 		psvr->OnTimerEvent();

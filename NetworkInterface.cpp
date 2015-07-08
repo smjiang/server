@@ -4,6 +4,8 @@
 #include "IniFileParser.h"
 #include "Log.h"
 #include "Tools.h"
+#include "Db.h"
+#include "Json/json.h"
 
 #define MAXEVENT 100000
 
@@ -35,7 +37,7 @@ int CNetworkInterface::Init()
 {
 	m_status = true;
 	m_tcplistenport = 8087;
-	m_threadNum = 2;
+	m_threadNum = 1;
 	
 	unsigned int localip = GetLocalIP();
 	char strip[16] = {0};
@@ -115,6 +117,7 @@ int CNetworkInterface::Init()
 		pthread_create(&m_threads[i].pid,NULL,ProcessThread,m_threads+i);
 		usleep(200);
 	}
+
 	return 0;
 }
 
@@ -234,14 +237,57 @@ void CNetworkInterface::DoProcess(int sock)
 		const char* errmsg = "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 13\r\nConnection: close\r\n\r\n404 Not Found";
 		if(pos)
 		{
+			pos += 4;
+			Json::Reader reader;
+			Json::Value value;
+			if(reader.parse(pos,value,false))
+			{
+				Json::Value openid = value.get("msgType","");
+				CLog::getInstance()->info("get openID %s",openid.toStyledString().c_str());
+			}
+			const char* resp = "HTTP/1.1 200 OK\r\nContent-Type: text/json\r\nConnection: keep-alive\r\n\r\n";
 			send(sock,errmsg,strlen(errmsg),0);
 			CLog::getInstance()->info("pid %d send %s",pid,errmsg);
 		}
 	}
-	
-	char* openID = "1234567890";
-	char* msgType = "";
-	char* msgContent;
+	char* jsontxt = "{\"openId\": \"WX123456789\",\"msgType\":\"txt\",\"msgContent\":\"asdfas\"}";
+	Json::Reader reader;
+	Json::Value value;
+	if(reader.parse(jsontxt,value,false))
+	{
+		Json::Value openid = value.get("openId","");
+		CLog::getInstance()->info("get openID %s",openid.toStyledString().c_str());
+	}
+	else
+	{
+		CLog::getInstance()->info("parse fail");
+	}
+	char* openID = "WX1234567890";
+	char* equipmentID = "UR987654321";
+	char* username = "andy";
+	ret = CDbInterface::Instance()->InsertUserTable(equipmentID,username);
+	if(0 == ret)
+	{
+		//insert success
+	}
+	else if(1062 == ret)
+	{
+		//already exist
+	}
+	else if(2006 == ret || 2013 == ret)
+	{
+		//mysql disconnect
+		CDbInterface::Instance()->DBDisConnect();
+		if(CDbInterface::Instance()->DBConnect())
+		{
+			ret = CDbInterface::Instance()->InsertUserTable(equipmentID,username);
+			if(0 == ret)
+			{
+				//insert success
+			}
+		}
+	}
+	CDbInterface::Instance()->InsertWX2UserTable(openID,equipmentID);
 	
 }
 

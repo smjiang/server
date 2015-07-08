@@ -13,14 +13,15 @@ public:
 	bool Init();
 	bool DBConnect();
 	bool DBDisConnect();
-	bool CreateDB(char* dbname);
+	int CreateDB(char* dbname);
 	
-	bool CreateUserTable();
-	bool InsertUserTable(char* equipmentID, char* username);
+	int CreateUserTable();
+	int InsertUserTable(char* equipmentID, char* username);
 	
-	bool CreateWX2UserTable();
-	bool InsertWX2UserTable(char* openID, char* equipmentID);
-	string GetUserIDByWX(char* openID);
+	int CreateWX2UserTable();
+	int InsertWX2UserTable(char* openID, char* equipmentID);//binding weixin to equipment
+	int DelWX2UserTable(char* openID);//disbinding weixin from equipment
+	int GetUserIDByWX(char* openID, string& eID);
 	
 	static CDbInterface* Instance();
 	static void FreeInstance();
@@ -28,7 +29,7 @@ private:
 	MYSQL*			m_sql;
 	unsigned short  m_port;
 	string			m_host;
-	string			m_usename;
+	string			m_username;
 	string			m_passwd;
 
 	string			m_dbname;
