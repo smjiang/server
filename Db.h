@@ -22,6 +22,7 @@ public:
 	int InsertWX2UserTable(char* openID, char* equipmentID);//binding weixin to equipment
 	int DelWX2UserTable(char* openID);//disbinding weixin from equipment
 	int GetUserIDByWX(char* openID, string& eID);
+	int GetWXByUserID(char* eID, string& openID);
 	
 	static CDbInterface* Instance();
 	static void FreeInstance();

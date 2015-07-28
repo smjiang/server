@@ -369,6 +369,7 @@ namespace Json {
       std::string getComment( CommentPlacement placement ) const;
 
       std::string toStyledString() const;
+	  std::string toStyledString_t() const;
 
       const_iterator begin() const;
       const_iterator end() const;

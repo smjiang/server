@@ -5,7 +5,7 @@ INCLUDE_DIR = -I /usr/include/mysql
 
 OBJ_PATH = objs/
 EXE_PATH = bin/
-EXE_NAME = fileserver
+EXE_NAME = server
 ALL_OBJ = $(addprefix $(OBJ_PATH),$(addsuffix .o,$(basename $(ALL_CPP))))
 ALL_CPP = $(wildcard *.cpp) $(wildcard Json/*.cpp)
 

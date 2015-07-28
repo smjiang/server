@@ -11,6 +11,7 @@ struct ChannelInfo
 {
 	unsigned long long lastNum;
 	time_t	updatetime;
+	int		sock;
 	char   status;
 };
 class CPeerGroup

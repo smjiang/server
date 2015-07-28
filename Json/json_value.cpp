@@ -1363,6 +1363,28 @@ Value::toStyledString() const
    return writer.write( *this );
 }
 
+std::string 
+Value::toStyledString_t() const
+{
+   StyledWriter writer;
+   std::string ret = writer.write( *this );
+   size_t pos = ret.rfind('\n');
+   if(std::string::npos != pos)
+   {
+   		ret = ret.substr(0,pos);
+   }
+   if('\"' == ret[0])
+   {
+   		ret = ret.substr(1);
+		pos = ret.rfind("\"");
+   		if(std::string::npos != pos)
+   		{
+   			ret = ret.substr(0,pos);
+   		}
+   }
+   return ret;
+}
+
 
 Value::const_iterator 
 Value::begin() const

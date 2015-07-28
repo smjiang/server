@@ -17,7 +17,7 @@ bool mydaemonize(void);
 
 int main(int argc,char *argv[])
 {
-	CLog::getInstance()->print("fileserver start");
+	CLog::getInstance()->print("server start");
 	CLog::getInstance()->init("log");
 	if (argc == 1 && !mydaemonize())
 	{
@@ -42,12 +42,12 @@ int main(int argc,char *argv[])
 	signal(SIGCHLD,signal_handler);
 	signal(SIGQUIT,signal_handler);
 
-	g_httpServer.init(8088);
+	/*g_httpServer.init(8088);
 	if(g_httpServer.run() == 2)
 	{
 		CLog::getInstance()->error("fileserver run fail");
 		return 0;
-	}
+	}*/
 
 	if(CNetworkInterface::Instance()->Init() < 0)
 	{
@@ -58,16 +58,6 @@ int main(int argc,char *argv[])
 	if(!CDbInterface::Instance()->Init())
 	{
 		return 0;
-	}
-
-	char* openID = "WX1234567890";
-	char* equipmentID = "UR987654321";
-	char* username = "andy";
-	CDbInterface::Instance()->InsertUserTable(equipmentID,username);
-	int ret = CDbInterface::Instance()->InsertWX2UserTable(openID,equipmentID);
-	if(1062 == ret)
-	{
-		CDbInterface::Instance()->DelWX2UserTable(openID);
 	}
 
 	while(true)

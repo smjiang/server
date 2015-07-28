@@ -71,6 +71,7 @@ bool CPeerGroup::GetChannel(string id,ChannelInfo & info)
 		info.lastNum = itr->second.lastNum;
 		info.status = itr->second.status;
 		info.updatetime = itr->second.updatetime;
+		info.sock = itr->second.sock;
 		return true;
 	}
 	return false;
@@ -84,6 +85,7 @@ bool CPeerGroup::UpdateChannel(string id,ChannelInfo & info)
 	{
 		itr->second.lastNum = info.lastNum;
 		itr->second.status = info.status;
+		itr->second.sock = info.sock;
 		itr->second.updatetime = time(NULL);
 		return true;
 	}

@@ -74,6 +74,8 @@ namespace Json {
        * \return String containing the JSON document that represents the root value.
        */
       virtual std::string write( const Value &root );
+	  virtual std::string writeTest(const Value &root);
+	  void writeValueTest(const Value &value);
 
    private:
       void writeValue( const Value &value );

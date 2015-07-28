@@ -65,6 +65,7 @@ bool CDbInterface::Init()
 		CLog::getInstance()->error("database init fail");
 		return false;
 	}
+	
 	return true;
 }
 
@@ -206,23 +207,52 @@ int CDbInterface::GetUserIDByWX(char* openID,string& eID)
 {
 	char buf[1024];	
 	memset(buf, 0, sizeof(buf));
-	sprintf(buf, "SELECT equipmentID FROM %s WHERE openID=%s", m_wx2usertablename.c_str(),openID);
+	sprintf(buf, "SELECT equipmentID FROM %s WHERE openID='%s'", m_wx2usertablename.c_str(),openID);
 	int ret = mysql_query(m_sql, buf);
 	if(0 != ret)
 	{
 		ret = mysql_errno(m_sql);
-		CLog::getInstance()->error("insert usertable fail %d: %s",ret,mysql_error(m_sql));
+		CLog::getInstance()->error("GetUserIDByWX fail %d: %s",ret,mysql_error(m_sql));
+		return ret;
+	}
+	MYSQL_RES* mysqlRes = mysql_store_result(m_sql);
+	if (NULL == mysqlRes)
+	{
+		CLog::getInstance()->error("GetUserIDByWX mysql_store_result fail %u: %s",mysql_errno(m_sql),mysql_error(m_sql));
+		return mysql_errno(m_sql);
+	}
+ 	MYSQL_ROW mysqlRow = mysql_fetch_row(mysqlRes);
+	if(mysqlRow)
+	{
+		eID = mysqlRow[0];
+	}
+	mysql_free_result(mysqlRes);
+	return 0;
+}
+int CDbInterface::GetWXByUserID(char* eID,string& openID)
+{
+	char buf[1024];	
+	memset(buf, 0, sizeof(buf));
+	sprintf(buf, "SELECT openID FROM %s WHERE equipmentID='%s'", m_wx2usertablename.c_str(),eID);
+	int ret = mysql_query(m_sql, buf);
+	if(0 != ret)
+	{
+		ret = mysql_errno(m_sql);
+		CLog::getInstance()->error("GetWXByUserID fail %d: %s",ret,mysql_error(m_sql));
 		return ret;
 	}
 	
 	MYSQL_RES* mysqlRes = mysql_store_result(m_sql);
 	if (NULL == mysqlRes)
 	{
-		CLog::getInstance()->error("mysql_store_result fail %u: %s",mysql_errno(m_sql),mysql_error(m_sql));
+		CLog::getInstance()->error("GetWXByUserID mysql_store_result fail %u: %s",mysql_errno(m_sql),mysql_error(m_sql));
 		return mysql_errno(m_sql);
 	}
  	MYSQL_ROW mysqlRow = mysql_fetch_row(mysqlRes);
-	eID = mysqlRow[0];
+	if(mysqlRow)
+	{
+		openID = mysqlRow[0];
+	}
 	mysql_free_result(mysqlRes);
 	return 0;
 }

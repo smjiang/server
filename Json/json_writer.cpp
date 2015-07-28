@@ -285,6 +285,78 @@ StyledWriter::write( const Value &root )
    document_ += "\n";
    return document_;
 }
+std::string 
+StyledWriter::writeTest( const Value &root )
+{
+   document_ = "";
+   addChildValues_ = false;
+   indentString_ = "";
+   writeCommentBeforeValue( root );
+   writeValueTest( root );
+   writeCommentAfterValueOnSameLine( root );
+   //document_ += "\n";
+   return document_;
+}
+void 
+StyledWriter::writeValueTest( const Value &value )
+{
+   switch ( value.type() )
+   {
+   case nullValue:
+      pushValue( "null" );
+      break;
+   case intValue:
+      pushValue( valueToString( value.asInt() ) );
+      break;
+   case uintValue:
+      pushValue( valueToString( value.asUInt() ) );
+      break;
+   case realValue:
+      pushValue( valueToString( value.asDouble() ) );
+      break;
+   case stringValue:
+      pushValue( valueToString( value.asCString() ) );
+      break;
+   case booleanValue:
+      pushValue( valueToString( value.asBool() ) );
+      break;
+   case arrayValue:
+      writeArrayValue( value);
+      break;
+   case objectValue:
+      {
+         Value::Members members( value.getMemberNames() );
+         if ( members.empty() )
+            pushValue( "{}" );
+         else
+         {
+            writeWithIndent( "{" );
+            indent();
+            Value::Members::iterator it = members.begin();
+            while ( true )
+            {
+               const std::string &name = *it;
+               const Value &childValue = value[name];
+               writeCommentBeforeValue( childValue );
+               writeWithIndent( valueToQuotedString( name.c_str() ) );
+               document_ += " : ";
+               writeValue( childValue );
+               if ( ++it == members.end() )
+               {
+                  writeCommentAfterValueOnSameLine( childValue );
+                  break;
+               }
+               document_ += ",";
+               writeCommentAfterValueOnSameLine( childValue );
+            }
+            unindent();
+            writeWithIndent( "}" );
+         }
+      }
+      break;
+   }
+}
+
 
 
 void 
