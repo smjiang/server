@@ -368,23 +368,27 @@ void CNetworkInterface::DoProcess(int sock)
 			else if("get_contact" == strCmd)
 			{
 				vector<WXUserInfo> openIDs;
-				ProcessGetWXByDeviceID(strDeviceID.c_str(),openIDs);
-				const char* idFmt = "{\"openID\":\"%s\",\"nickname\":\"%s\"}";
-				char idbuf[1024] = {0};
 				vector<WXUserInfo>::iterator itr = openIDs.begin();
-				if(openIDs.end() != itr)
+				ProcessGetWXByDeviceID(strDeviceID.c_str(),openIDs);
+				
+				Json::FastWriter jsonWriter;
+				Json::Value root;
+				root["cmd"] = Json::Value("get_contact");
+				root["device_id"] = Json::Value((char*)strDeviceID.c_str());
+				if(openIDs.end() == itr)
 				{
-					snprintf(idbuf,idFmt,(*itr).openID.c_str(),(*itr).nickname.c_str());
-					itr++;
+					root["result"].append("");
 				}
 				while(openIDs.end() != itr)
 				{
-					strcat(idbuf, ",");
-					snprintf(idbuf+strlen(idbuf),idFmt,(*itr).openID.c_str(),(*itr).nickname.c_str());
+					Json::Value valueResult;
+					valueResult["openID"] = Json::Value((*itr).openID.c_str());
+					valueResult["nickname"] = Json::Value((*itr).nickname.c_str());
+					root["result"].append(valueResult);
 					itr++;
 				}
-				const char* sndFmt = "{\"cmd\":\"get_contact\",\"device_id\":\"%s\",\"result\":[%s]}";
-				snprintf(pResp,1000,sndFmt,strDeviceID.c_str(),idbuf);
+				strncpy(pResp,jsonWriter.write(root).c_str(),1000);
+				
 				jsonLen = strlen(pResp);
 				respHead->len = htons(jsonLen);
 				ret = send(sock,respBuf,jsonLen+4,0);
