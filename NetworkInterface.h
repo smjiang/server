@@ -8,8 +8,9 @@
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #include <map>
-#include <queue>
+#include <vector>
 #include "CLock.h"
+#include "Db.h"
 using namespace std;
 
 #define SOCK_RECVBUF_SIZE 65536
@@ -70,13 +71,24 @@ public:
 	static CNetworkInterface* Instance();
 	static void FreeInstance();
 private:
-	int ProcessBind(const char* openID,const char* equipmentID);
+	int ProcessBind(const char* openID,const char* equipmentID,const char* nickname,int bAdmin);
 	int ProcessUnbind(const char* openID);
 	int ProcessGetBind(const char* openID,string& uuid);
-	int ProcessGetWXByDeviceID(const char* eID,string& openID);
+	int ProcessGetWXByDeviceID(const char* eID,vector<WXUserInfo>& openIDs);
+
+	//int ProcessGetUserList(vector<WXUserInfo> userlist);
+	bool IsWXUserAdmin(const char* openID);
+	int ProcessDelWXUser(const char* openID);
+	int ProcessSetWXUserAdmin(const char* openID);
+	int ProcessSetWXUserNickName(const char* openID, const char* nickname);
+	int ProcessGetNickName(const char* openID, string& nickname);
+
+	int ProcessInsertQuestion(char* question, char* answer, int type);
+	int ProcessGetAnswer(char* question, string& answer, int& type);
 
 	int SendMsgToWX(const char* openID,char* msgurl);
-	int SendMsgToDevice(const char* deviceID,char* msgurl,int type);
+	int SendMsgToDevice(const char* deviceID,char* msgurl);
+
 	
 private:
 	pthread_t m_threadid;
@@ -86,6 +98,7 @@ private:
 	int m_threadNum;//handle threads
 	THREAD* m_threads;
 
+	int m_httpServerSock;
 	int m_httpClientSock;
 	pthread_t m_threadMsg;
 	queue<IMMSG> m_msgQue;

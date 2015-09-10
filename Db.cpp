@@ -14,6 +14,7 @@ CDbInterface::CDbInterface()
 	m_dbname = "smartoy";
 	m_usertablename = "users";
 	m_wx2usertablename = "wx2user";
+	m_questiontablename = "question";
 }
 CDbInterface::~CDbInterface()
 {
@@ -100,6 +101,7 @@ bool CDbInterface::DBConnect()
 	}
 	CreateUserTable();
 	CreateWX2UserTable();
+	CreateQuestionTable();
 	CLog::getInstance()->info("connect db %s success",m_dbname.c_str());
 	return true;
 }
@@ -136,7 +138,7 @@ int CDbInterface::CreateUserTable()
 {
 	char buf[1024];	
 	memset(buf, 0, sizeof(buf));
-	sprintf(buf, "create table if not exists %s (equipmentID VARCHAR(64) NOT NULL PRIMARY KEY, username VARCHAR(255), createtime int)", m_usertablename.c_str());
+	sprintf(buf, "create table if not exists %s (equipmentID VARCHAR(64) NOT NULL, username VARCHAR(255), createtime int)", m_usertablename.c_str());
 	int ret = mysql_query(m_sql, buf);
 	if(0 != ret)
 	{
@@ -161,11 +163,16 @@ int CDbInterface::InsertUserTable(char* equipmentID, char* username)
 	return ret;
 }
 
+int CDbInterface::GetWXList(char *eID,vector<string>& userlist)
+{
+	return 0;
+}
+
 int CDbInterface::CreateWX2UserTable()
 {
 	char buf[1024];	
 	memset(buf, 0, sizeof(buf));
-	sprintf(buf, "create table if not exists %s (openID VARCHAR(64) NOT NULL PRIMARY KEY, equipmentID VARCHAR(64) NOT NULL, createtime int)", m_wx2usertablename.c_str());
+	sprintf(buf, "create table if not exists %s (openID VARCHAR(64) NOT NULL PRIMARY KEY, equipmentID VARCHAR(64) NOT NULL,nickname VARCHAR(255), bAdmin int, createtime int)", m_wx2usertablename.c_str());
 	int ret = mysql_query(m_sql, buf);
 	if(0 != ret)
 	{
@@ -174,12 +181,12 @@ int CDbInterface::CreateWX2UserTable()
 	}
 	return ret;
 }
-int CDbInterface::InsertWX2UserTable(char* openID, char* equipmentID)
+int CDbInterface::InsertWX2UserTable(char* openID, char* equipmentID, char* nickname,int bAdmin)
 {
 	char buf[1024];	
 	memset(buf, 0, sizeof(buf));
 	unsigned int curtime = (unsigned int)time(NULL);
-	sprintf(buf, "INSERT INTO %s (openID, equipmentID, createtime) VALUES('%s','%s',%u)", m_wx2usertablename.c_str(),openID,equipmentID,curtime);
+	sprintf(buf, "INSERT INTO %s (openID, equipmentID, nickname, bAdmin, createtime) VALUES('%s','%s','%s',%d,%u)", m_wx2usertablename.c_str(),openID,equipmentID,nickname,bAdmin,curtime);
 	int ret = mysql_query(m_sql, buf);
 	if(0 != ret)
 	{
@@ -229,11 +236,11 @@ int CDbInterface::GetUserIDByWX(char* openID,string& eID)
 	mysql_free_result(mysqlRes);
 	return 0;
 }
-int CDbInterface::GetWXByUserID(char* eID,string& openID)
+int CDbInterface::GetWXByUserID(char* eID,vector<WXUserInfo>& openIDs)
 {
 	char buf[1024];	
 	memset(buf, 0, sizeof(buf));
-	sprintf(buf, "SELECT openID FROM %s WHERE equipmentID='%s'", m_wx2usertablename.c_str(),eID);
+	sprintf(buf, "SELECT openID,nickname,bAdmin FROM %s WHERE equipmentID='%s'", m_wx2usertablename.c_str(),eID);
 	int ret = mysql_query(m_sql, buf);
 	if(0 != ret)
 	{
@@ -248,10 +255,164 @@ int CDbInterface::GetWXByUserID(char* eID,string& openID)
 		CLog::getInstance()->error("GetWXByUserID mysql_store_result fail %u: %s",mysql_errno(m_sql),mysql_error(m_sql));
 		return mysql_errno(m_sql);
 	}
+	int num_rows = mysql_num_rows(mysqlRes);
+ 	MYSQL_ROW mysqlRow;
+	for(int i = 0; i < num_rows; i++)
+	{
+		mysqlRow = mysql_fetch_row(mysqlRes);
+		if(mysqlRow)
+		{
+			WXUserInfo userinfo;
+			userinfo.openID = mysqlRow[0];
+			userinfo.nickname = mysqlRow[1];
+			userinfo.bAdmin = mysqlRow[2];
+			openIDs.push_back(userinfo);
+		}
+	}
+	mysql_free_result(mysqlRes);
+	return 0;
+}
+
+int CDbInterface::IsWXAdmin(const char *openID, int& isAdmin)
+{
+	char buf[1024];	
+	memset(buf, 0, sizeof(buf));
+	sprintf(buf, "SELECT bAdmin FROM %s WHERE openID='%s'", m_wx2usertablename.c_str(),openID);
+	int ret = mysql_query(m_sql, buf);
+	if(0 != ret)
+	{
+		ret = mysql_errno(m_sql);
+		CLog::getInstance()->error("IsWXAdmin fail %d: %s",ret,mysql_error(m_sql));
+		return ret;
+	}
+	
+	MYSQL_RES* mysqlRes = mysql_store_result(m_sql);
+	if (NULL == mysqlRes)
+	{
+		CLog::getInstance()->error("IsWXAdmin mysql_store_result fail %u: %s",mysql_errno(m_sql),mysql_error(m_sql));
+		return mysql_errno(m_sql);
+	}
  	MYSQL_ROW mysqlRow = mysql_fetch_row(mysqlRes);
 	if(mysqlRow)
 	{
-		openID = mysqlRow[0];
+		isAdmin = mysqlRow[0];
+	}
+	mysql_free_result(mysqlRes);
+	return 0;
+}
+
+int CDbInterface::SetWXNickName(const char *openID,const char *nickname)
+{
+	char buf[1024];	
+	memset(buf, 0, sizeof(buf));
+	sprintf(buf, "UPDATE %s SET nickname='%s' WHERE openID='%s'", m_wx2usertablename.c_str(),nickname,openID);
+	int ret = mysql_query(m_sql, buf);
+	if(0 != ret)
+	{
+		ret = mysql_errno(m_sql);
+		CLog::getInstance()->error("SetWXNickName fail %d: %s",ret,mysql_error(m_sql));
+		return ret;
+	}
+	return 0;
+}
+
+int CDbInterface::GetWXNickName(const char* openID,string& nickname)
+{
+	char buf[1024];	
+	memset(buf, 0, sizeof(buf));
+	sprintf(buf, "SELECT nickname FROM %s WHERE openID='%s'", m_wx2usertablename.c_str(),openID);
+	int ret = mysql_query(m_sql, buf);
+	if(0 != ret)
+	{
+		ret = mysql_errno(m_sql);
+		CLog::getInstance()->error("GetWXNickName fail %d: %s",ret,mysql_error(m_sql));
+		return ret;
+	}
+	
+	MYSQL_RES* mysqlRes = mysql_store_result(m_sql);
+	if (NULL == mysqlRes)
+	{
+		CLog::getInstance()->error("GetWXNickName mysql_store_result fail %u: %s",mysql_errno(m_sql),mysql_error(m_sql));
+		return mysql_errno(m_sql);
+	}
+ 	MYSQL_ROW mysqlRow = mysql_fetch_row(mysqlRes);
+	if(mysqlRow)
+	{
+		nickname = mysqlRow[0];
+	}
+	mysql_free_result(mysqlRes);
+	return 0;
+}
+
+int CDbInterface::SetWXAdmin(const char * openID)
+{
+	char buf[1024];	
+	memset(buf, 0, sizeof(buf));
+	sprintf(buf, "UPDATE %s SET bAdmin=1 WHERE openID='%s'", m_wx2usertablename.c_str(),openID);
+	int ret = mysql_query(m_sql, buf);
+	if(0 != ret)
+	{
+		ret = mysql_errno(m_sql);
+		CLog::getInstance()->error("SetWXAdmin fail %d: %s",ret,mysql_error(m_sql));
+		return ret;
+	}
+	return 0;
+}
+
+int CDbInterface::CreateQuestionTable()
+{
+	char buf[1024];	
+	memset(buf, 0, sizeof(buf));
+	sprintf(buf, "create table if not exists %s (question VARCHAR(128) NOT NULL PRIMARY KEY, answer VARCHAR(128) NOT NULL,type int, createtime int)", m_questiontablename.c_str());
+	int ret = mysql_query(m_sql, buf);
+	if(0 != ret)
+	{
+		CLog::getInstance()->error("create question to user table fail %d: %s",ret,mysql_error(m_sql));
+		return mysql_errno(m_sql);
+	}
+	return ret;
+}
+
+int CDbInterface::InsertQuestionTable(char* question, char* answer,int type)
+{
+	char buf[1024];	
+	memset(buf, 0, sizeof(buf));
+	unsigned int curtime = (unsigned int)time(NULL);
+	sprintf(buf, "INSERT INTO %s (question, answer, type, createtime) VALUES('%s','%s',%u,%u)", m_questiontablename.c_str(),question,answer,type,curtime);
+	int ret = mysql_query(m_sql, buf);
+	if(0 != ret)
+	{
+		ret = mysql_errno(m_sql);
+		CLog::getInstance()->error("insert question table fail %d: %s",ret,mysql_error(m_sql));
+		return ret;
+	}
+	return ret;
+}
+
+int CDbInterface::GetAnswerByQuestion(char * question,string& answer,int& type)
+{
+	char buf[1024];	
+	memset(buf, 0, sizeof(buf));
+	sprintf(buf, "SELECT answer,type FROM %s WHERE question='%s'", m_questiontablename.c_str(),question);
+	int ret = mysql_query(m_sql, buf);
+	if(0 != ret)
+	{
+		ret = mysql_errno(m_sql);
+		CLog::getInstance()->error("GetAnswerByQuestion fail %d: %s",ret,mysql_error(m_sql));
+		return ret;
+	}
+	
+	MYSQL_RES* mysqlRes = mysql_store_result(m_sql);
+	if (NULL == mysqlRes)
+	{
+		CLog::getInstance()->error("GetWXByUserID mysql_store_result fail %u: %s",mysql_errno(m_sql),mysql_error(m_sql));
+		return mysql_errno(m_sql);
+	}
+ 	MYSQL_ROW mysqlRow = mysql_fetch_row(mysqlRes);
+	if(mysqlRow)
+	{
+		answer = mysqlRow[0];
+		type = mysqlRow[1];
 	}
 	mysql_free_result(mysqlRes);
 	return 0;
