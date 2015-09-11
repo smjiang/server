@@ -240,7 +240,7 @@ void CNetworkInterface::DoProcess(int sock)
 	MsgHead* head = (MsgHead*)buf;
 	if(0x0101 == htons(head->cmd))
 	{
-		int len = htons(head->len);
+		unsigned int len = htons(head->len);
 		if(info.datapos < len+4)
 		{
 			CLog::getInstance()->info("pid %d sock %d recvfrom equipment,msg not finish:%d,recved %d",pid,sock,len,info.datapos);
@@ -341,9 +341,9 @@ void CNetworkInterface::DoProcess(int sock)
 				CLog::getInstance()->info("msg from equipment : %s",strCmd.c_str());
 				if(m_httpServerSock > 0)
 				{
-					snprintf(respBuf,respFmt,0,"Success",buf+4);
+					snprintf(respBuf,sizeof(respBuf),respFmt,0,"Success",buf+4);
 					char sendbuf[1024] = {0};
-					snprintf(sendbuf,sendfmt, strlen(respBuf),respBuf);
+					snprintf(sendbuf,sizeof(respBuf),sendfmt, strlen(respBuf),respBuf);
 					ret = send(m_httpServerSock, sendbuf, strlen(sendbuf), 0);
 					m_httpServerSock = -1;
 					CLog::getInstance()->info("send weixin %s %d Byte: %s",strCmd.c_str(),ret,respBuf);
@@ -460,9 +460,10 @@ void CNetworkInterface::DoProcess(int sock)
 				}
 				else if("audio" == strMsgType)
 				{
+					strMsgContent = "";
 					Json::Value audiourl = value.get("url","");
 					string strAudioUrl = audiourl.toStyledString_t();
-					int ret = CDbInterface::Instance()->GetUserIDByWX(strOpenID.c_str(),strDeviceID);
+					int ret = ProcessGetDeviceIDByWX(strOpenID.c_str(),strDeviceID);
 					if(0 == ret)
 					{
 						const char* audioJsonFmt = "{\"cmd\":\"play_voice\",\"device_id\":\"%s\",\"contact_id\":\"%s\",\"voice_uri\":\"%s\"}";
@@ -476,8 +477,8 @@ void CNetworkInterface::DoProcess(int sock)
 					else
 					{
 						CLog::getInstance()->info("send audio fail : no bind device");
+						ret = -4;
 					}
-					strMsgContent = "";
 				}
 				else if("operation" == strMsgType)
 				{
@@ -493,16 +494,28 @@ void CNetworkInterface::DoProcess(int sock)
 							bAdmin = 1;
 						}
 						ret = ProcessBind(strOpenID.c_str(),strDeviceID.c_str(),strMsgContent.c_str(), bAdmin);
+						if(ret > 0)
+						{
+							ret = -4;
+						}
 						strMsgContent = "";
 					}
 					else if("unbind" == strOperationType)
 					{
 						ret = ProcessUnbind(strOpenID.c_str());
+						if(0 != ret)
+						{
+							ret = -4;
+						}
 						strMsgContent = "";
 					}
 					else if("bindlist" == strOperationType)
 					{
 						ret = ProcessGetBind(strOpenID.c_str(),strMsgContent);
+						if(0 != ret)
+						{
+							ret = -4;
+						}
 						string tmp = "\"";
 						tmp += strMsgContent;
 						tmp += "\"";
@@ -512,7 +525,7 @@ void CNetworkInterface::DoProcess(int sock)
 					{
 						Json::Value audiourl = value.get("url","");
 						string strAudioUrl = audiourl.toStyledString_t();
-						ret = CDbInterface::Instance()->GetUserIDByWX(strOpenID.c_str(),strDeviceID);
+						ret = ProcessGetDeviceIDByWX(strOpenID.c_str(),strDeviceID);
 						if(0 == ret)
 						{
 							const char* audioJsonFmt = "{\"cmd\":\"play_music\",\"device_id\":\"%s\",\"voice_uri\":\"%s\"}";
@@ -527,6 +540,7 @@ void CNetworkInterface::DoProcess(int sock)
 						else
 						{
 							CLog::getInstance()->info("send play music fail : no bind device");
+							ret = -4;
 						}
 						strMsgContent = "";
 					}
@@ -534,6 +548,10 @@ void CNetworkInterface::DoProcess(int sock)
 					{
 						vector<WXUserInfo> openIDs;
 						ret = ProcessGetWXByDeviceID(strDeviceID.c_str(),openIDs);
+						if(0 != ret)
+						{
+							ret = -4;
+						}
 						vector<WXUserInfo>::iterator itr = openIDs.begin();
 						char idBuf[1024] = {0};
 						strMsgContent = "";
@@ -557,6 +575,10 @@ void CNetworkInterface::DoProcess(int sock)
 						if(IsWXUserAdmin(strOpenID.c_str()))
 						{
 							ret = ProcessDelWXUser(strMsgContent.c_str());
+							if(0 != ret)
+							{
+								ret = -4;
+							}
 						}
 						else
 						{
@@ -569,6 +591,11 @@ void CNetworkInterface::DoProcess(int sock)
 						if(IsWXUserAdmin(strOpenID.c_str()))
 						{
 							ret = ProcessSetWXUserAdmin(strMsgContent.c_str());
+							if(0 != ret)
+							{
+								ret = -4;
+							}
+
 						}
 						else
 						{
@@ -579,13 +606,17 @@ void CNetworkInterface::DoProcess(int sock)
 					else if("setname" == strOperationType)//set weixin user's nickname
 					{
 						ret = ProcessSetWXUserNickName(strOpenID.c_str(),strMsgContent.c_str());
+						if(0 != ret)
+						{
+							ret = -4;
+						}
 						strMsgContent = "";
 					}
 					else if("setvoice" == strOperationType)
 					{
 						if(strDeviceID.c_str() == 0)
 						{
-							CDbInterface::Instance()->GetUserIDByWX(strOpenID.c_str(),strDeviceID);
+							ProcessGetDeviceIDByWX(strOpenID.c_str(),strDeviceID);
 						}
 						if(strDeviceID.c_str() > 0)
 						{
@@ -630,7 +661,7 @@ void CNetworkInterface::DoProcess(int sock)
 					}
 					else if("listfile" == strOperationType)
 					{
-						ret = CDbInterface::Instance()->GetUserIDByWX(strOpenID.c_str(),strDeviceID);
+						ret = ProcessGetDeviceIDByWX(strOpenID.c_str(),strDeviceID);
 						if(0 == ret)
 						{
 							const char* jsonFmt = "{\"cmd\":\"list_file\",\"device_id\":\"%s\",\"page_num\":\"%s\"}";
@@ -649,6 +680,7 @@ void CNetworkInterface::DoProcess(int sock)
 						else
 						{
 							CLog::getInstance()->info("send list file fail : no bind device");
+							ret = -4;
 						}
 						strMsgContent = "";			
 					}
@@ -656,7 +688,7 @@ void CNetworkInterface::DoProcess(int sock)
 					{
 						if(strDeviceID.c_str() == 0)
 						{
-							CDbInterface::Instance()->GetUserIDByWX(strOpenID.c_str(),strDeviceID);
+							ProcessGetDeviceIDByWX(strOpenID.c_str(),strDeviceID);
 						}
 						if(strDeviceID.c_str() > 0)
 						{
@@ -697,9 +729,17 @@ void CNetworkInterface::DoProcess(int sock)
 				{
 					snprintf(respBuf,1024,respFmt,ret,"Device Not Online","");
 				}
-				else
+				else if(-4 == ret)
+				{
+					snprintf(respBuf,1024,respFmt,ret,"Database Error","");
+				}
+				else if(1 == ret)
 				{
 					snprintf(respBuf,1024,respFmt,ret,"Fail","Unknown Operation");
+				}
+				else
+				{
+					snprintf(respBuf,1024,respFmt,ret,"Fail","");
 				}
 				
 				char sendbuf[1024] = {0};
@@ -720,7 +760,7 @@ void CNetworkInterface::DoProcess(int sock)
 
 int CNetworkInterface::ProcessBind(const char * openID,const char * equipmentID,const char* nickname,int bAdmin)
 {
-	int ret = CDbInterface::Instance()->InsertWX2UserTable((char*)openID,equipmentID,nickname,bAdmin);
+	int ret = CDbInterface::Instance()->InsertWX2UserTable(openID,equipmentID,nickname,bAdmin);
 	if(0 == ret)
 	{
 		//insert success
@@ -737,7 +777,7 @@ int CNetworkInterface::ProcessBind(const char * openID,const char * equipmentID,
 		CDbInterface::Instance()->DBDisConnect();
 		if(CDbInterface::Instance()->DBConnect())
 		{
-			ret = CDbInterface::Instance()->InsertWX2UserTable((char*)openID,equipmentID,nickname,bAdmin);
+			ret = CDbInterface::Instance()->InsertWX2UserTable(openID,equipmentID,nickname,bAdmin);
 			if(0 == ret)
 			{
 				//insert success
@@ -786,7 +826,7 @@ int CNetworkInterface::ProcessGetBind(const char * openID,string& uuid)
 }
 int CNetworkInterface::ProcessGetWXByDeviceID(const char* eID,vector<WXUserInfo>& openIDs)
 {
-	int ret = CDbInterface::Instance()->GetWXByUserID((char*)eID,openIDs);
+	int ret = CDbInterface::Instance()->GetWXByUserID(eID,openIDs);
 	if(0 == ret)
 	{
 		//success
@@ -798,10 +838,31 @@ int CNetworkInterface::ProcessGetWXByDeviceID(const char* eID,vector<WXUserInfo>
 		CDbInterface::Instance()->DBDisConnect();
 		if(CDbInterface::Instance()->DBConnect())
 		{
-			ret = CDbInterface::Instance()->GetWXByUserID((char*)eID,openIDs);
+			ret = CDbInterface::Instance()->GetWXByUserID(eID,openIDs);
 		}
 	}
 	return ret;
+}
+
+int CNetworkInterface::ProcessGetDeviceIDByWX(const char * openID,string& deviceID)
+{
+	int ret = CDbInterface::Instance()->GetUserIDByWX(openID,deviceID);
+	if(0 == ret)
+	{
+		//success
+		return ret;
+	}
+	else if(2006 == ret || 2013 == ret)
+	{
+		//mysql disconnect
+		CDbInterface::Instance()->DBDisConnect();
+		if(CDbInterface::Instance()->DBConnect())
+		{
+			ret = CDbInterface::Instance()->GetUserIDByWX(openID,deviceID);
+		}
+	}
+	return ret;
+
 }
 
 bool CNetworkInterface::IsWXUserAdmin(const char *openID)
@@ -908,7 +969,7 @@ int CNetworkInterface::ProcessGetNickName(const char *openID, string& nickname)
 
 }
 
-int CNetworkInterface::ProcessInsertQuestion(char * question,char * answer,int type)
+int CNetworkInterface::ProcessInsertQuestion(const char * question,const char * answer,int type)
 {
 	int ret = CDbInterface::Instance()->InsertQuestionTable(question,answer,type);
 	if(0 == ret)
@@ -938,7 +999,7 @@ int CNetworkInterface::ProcessInsertQuestion(char * question,char * answer,int t
 
 }
 
-int CNetworkInterface::ProcessGetAnswer(char * question,string& answer,int& type)
+int CNetworkInterface::ProcessGetAnswer(const char * question,string& answer,int& type)
 {
 	int ret = CDbInterface::Instance()->GetAnswerByQuestion(question,answer,type);
 	if(0 == ret)
@@ -959,7 +1020,7 @@ int CNetworkInterface::ProcessGetAnswer(char * question,string& answer,int& type
 
 }
 
-int CNetworkInterface::SendMsgToWX(const char * openID,char * msgurl)
+int CNetworkInterface::SendMsgToWX(const char *openID,const char * msgurl)
 {
 	int ret = 0;
 	if(-1 == m_httpClientSock)
@@ -1027,7 +1088,7 @@ int CNetworkInterface::SendMsgToWX(const char * openID,char * msgurl)
 	return 0;
 }
 
-int CNetworkInterface::SendMsgToDevice(const char *deviceID,char *msgurl)
+int CNetworkInterface::SendMsgToDevice(const char *deviceID,const char *msgurl)
 {
 	ChannelInfo info;
 	if(CPeerGroup::Instance()->GetChannel(deviceID,info))
@@ -1038,7 +1099,7 @@ int CNetworkInterface::SendMsgToDevice(const char *deviceID,char *msgurl)
 			MsgHead pMsgHead;
 			pMsgHead.cmd = htons(0x0101);
 			int jlen = strlen(msgurl);
-			pMsgHead.len = htons(jlen+sizeof(pMsgHead));
+			pMsgHead.len = htons(jlen);
 			int ret = send(sock,(char*)&pMsgHead,sizeof(pMsgHead),0);
 			ret = send(sock,msgurl,jlen,0);
 			CLog::getInstance()->info("send audio to device sock %d len %d: %s",sock,ret,msgurl);

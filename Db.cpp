@@ -115,7 +115,7 @@ bool CDbInterface::DBDisConnect()
 	}
 	return true;
 }
-int CDbInterface::CreateDB(char * dbname)
+int CDbInterface::CreateDB(const char * dbname)
 {
 	char buf[256] = {0};
 	sprintf(buf, "create database if not exists %s", dbname);
@@ -181,7 +181,7 @@ int CDbInterface::CreateWX2UserTable()
 	}
 	return ret;
 }
-int CDbInterface::InsertWX2UserTable(char* openID, char* equipmentID, char* nickname,int bAdmin)
+int CDbInterface::InsertWX2UserTable(const char* openID, const char* equipmentID, const char* nickname,int bAdmin)
 {
 	char buf[1024];	
 	memset(buf, 0, sizeof(buf));
@@ -196,7 +196,7 @@ int CDbInterface::InsertWX2UserTable(char* openID, char* equipmentID, char* nick
 	}
 	return ret;
 }
-int CDbInterface::DelWX2UserTable(char* openID)
+int CDbInterface::DelWX2UserTable(const char* openID)
 {
 	char buf[1024];	
 	memset(buf, 0, sizeof(buf));
@@ -210,7 +210,7 @@ int CDbInterface::DelWX2UserTable(char* openID)
 	}
 	return ret;
 }
-int CDbInterface::GetUserIDByWX(char* openID,string& eID)
+int CDbInterface::GetUserIDByWX(const char* openID,string& eID)
 {
 	char buf[1024];	
 	memset(buf, 0, sizeof(buf));
@@ -236,7 +236,7 @@ int CDbInterface::GetUserIDByWX(char* openID,string& eID)
 	mysql_free_result(mysqlRes);
 	return 0;
 }
-int CDbInterface::GetWXByUserID(char* eID,vector<WXUserInfo>& openIDs)
+int CDbInterface::GetWXByUserID(const char* eID,vector<WXUserInfo>& openIDs)
 {
 	char buf[1024];	
 	memset(buf, 0, sizeof(buf));
@@ -295,7 +295,7 @@ int CDbInterface::IsWXAdmin(const char *openID, int& isAdmin)
  	MYSQL_ROW mysqlRow = mysql_fetch_row(mysqlRes);
 	if(mysqlRow)
 	{
-		isAdmin = mysqlRow[0];
+		isAdmin = atoi(mysqlRow[0]);
 	}
 	mysql_free_result(mysqlRes);
 	return 0;
@@ -373,7 +373,7 @@ int CDbInterface::CreateQuestionTable()
 	return ret;
 }
 
-int CDbInterface::InsertQuestionTable(char* question, char* answer,int type)
+int CDbInterface::InsertQuestionTable(const char* question, const char* answer,int type)
 {
 	char buf[1024];	
 	memset(buf, 0, sizeof(buf));
@@ -389,7 +389,7 @@ int CDbInterface::InsertQuestionTable(char* question, char* answer,int type)
 	return ret;
 }
 
-int CDbInterface::GetAnswerByQuestion(char * question,string& answer,int& type)
+int CDbInterface::GetAnswerByQuestion(const char * question,string& answer,int& type)
 {
 	char buf[1024];	
 	memset(buf, 0, sizeof(buf));
@@ -412,7 +412,7 @@ int CDbInterface::GetAnswerByQuestion(char * question,string& answer,int& type)
 	if(mysqlRow)
 	{
 		answer = mysqlRow[0];
-		type = mysqlRow[1];
+		type = atoi(mysqlRow[1]);
 	}
 	mysql_free_result(mysqlRes);
 	return 0;

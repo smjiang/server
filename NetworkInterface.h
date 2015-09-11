@@ -75,6 +75,7 @@ private:
 	int ProcessUnbind(const char* openID);
 	int ProcessGetBind(const char* openID,string& uuid);
 	int ProcessGetWXByDeviceID(const char* eID,vector<WXUserInfo>& openIDs);
+	int ProcessGetDeviceIDByWX(const char* openID,string& deviceID);
 
 	//int ProcessGetUserList(vector<WXUserInfo> userlist);
 	bool IsWXUserAdmin(const char* openID);
@@ -83,11 +84,11 @@ private:
 	int ProcessSetWXUserNickName(const char* openID, const char* nickname);
 	int ProcessGetNickName(const char* openID, string& nickname);
 
-	int ProcessInsertQuestion(char* question, char* answer, int type);
-	int ProcessGetAnswer(char* question, string& answer, int& type);
+	int ProcessInsertQuestion(const char* question, const char* answer, int type);
+	int ProcessGetAnswer(const char* question, string& answer, int& type);
 
-	int SendMsgToWX(const char* openID,char* msgurl);
-	int SendMsgToDevice(const char* deviceID,char* msgurl);
+	int SendMsgToWX(const char* openID,const char* msgurl);
+	int SendMsgToDevice(const char* deviceID,const char* msgurl);
 
 	
 private:

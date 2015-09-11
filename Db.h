@@ -20,24 +20,24 @@ public:
 	bool Init();
 	bool DBConnect();
 	bool DBDisConnect();
-	int CreateDB(char* dbname);
+	int CreateDB(const char* dbname);
 	
 	int CreateUserTable();
 	int InsertUserTable(char* equipmentID, char* username);
 	
 	int CreateWX2UserTable();
-	int InsertWX2UserTable(char* openID, char* equipmentID, char* nickname, int bAdmin);//binding weixin to equipment
-	int DelWX2UserTable(char* openID);//disbinding weixin from equipment
-	int GetUserIDByWX(char* openID, string& eID);
-	int GetWXByUserID(char* eID, vector<WXUserInfo>& openIDs);
+	int InsertWX2UserTable(const char* openID, const char* equipmentID, const char* nickname, int bAdmin);//binding weixin to equipment
+	int DelWX2UserTable(const char* openID);//disbinding weixin from equipment
+	int GetUserIDByWX(const char* openID, string& eID);
+	int GetWXByUserID(const char* eID, vector<WXUserInfo>& openIDs);
 	int IsWXAdmin(const char* openID, int& isAdmin);
 	int SetWXNickName(const char* openID, const char* nickname);
 	int GetWXNickName(const char* openID, string& nickname);
 	int SetWXAdmin(const char* openID);
 
 	int CreateQuestionTable();
-	int InsertQuestionTable(char* question, char* answer, int type);//type: 1 txt; 2 audio
-	int GetAnswerByQuestion(char* question, string& answer, int& type);
+	int InsertQuestionTable(const char* question, const char* answer, int type);//type: 1 txt; 2 audio
+	int GetAnswerByQuestion(const char* question, string& answer, int& type);
 
 	int GetWXList(char* eID, vector<string>& userlist);
 	

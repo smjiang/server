@@ -408,7 +408,7 @@ int CHttpServer::ProcessHttpReq(char* buf,int len,int i)
 				vector<string> channels;
 				CPeerGroup::Instance()->GetAllChannel(channels);
 				char contentbuf[2048] = {0};
-				sprintf(contentbuf,"channels %d\n",channels.size());
+				sprintf(contentbuf,"channels %d\n",(int)channels.size());
 				vector<string>::iterator itr = channels.begin();
 				while(channels.end() != itr)
 				{
@@ -422,7 +422,7 @@ int CHttpServer::ProcessHttpReq(char* buf,int len,int i)
 					itr++;
 				}
 				char monitorResp[2500] = {0};
-				sprintf(monitorResp,"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",strlen(contentbuf),contentbuf);
+				sprintf(monitorResp,"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",(int)strlen(contentbuf),contentbuf);
 				send(m_SocketArray[i],monitorResp,strlen(monitorResp),0);
 				return 0;
 			}
