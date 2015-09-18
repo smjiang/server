@@ -225,7 +225,7 @@ void CNetworkInterface::DoProcess(int sock)
 	{
 		info.datapos += ret;
 		info.recvbuf[info.datapos] = '\0';
-		CLog::getInstance()->info("pid %d sock %d recv %s",pid,sock,info.recvbuf);
+		//CLog::getInstance()->info("pid %d sock %d recv %s",pid,sock,info.recvbuf);
 
 		ret = recv(sock,info.recvbuf+info.datapos, SOCK_RECVBUF_SIZE-info.datapos,0);
 	}
@@ -257,6 +257,7 @@ void CNetworkInterface::DoProcess(int sock)
 		Json::Value value;
 		if(reader.parse(buf+4,value,false))
 		{
+			CLog::getInstance()->info("pid %d sock %d recv %s",pid,sock,buf+4);
 			Json::Value cmd = value.get("cmd","");
 			string strCmd = cmd.toStyledString_t();
 			Json::Value deviceID = value.get("device_id","");
@@ -367,9 +368,10 @@ void CNetworkInterface::DoProcess(int sock)
 			}
 			else if("get_contact" == strCmd)
 			{
+				CLog::getInstance()->info("msg from equipment : %s,deviceID %s",strCmd.c_str(),strDeviceID.c_str());
 				vector<WXUserInfo> openIDs;
-				vector<WXUserInfo>::iterator itr = openIDs.begin();
 				ProcessGetWXByDeviceID(strDeviceID.c_str(),openIDs);
+				vector<WXUserInfo>::iterator itr = openIDs.begin();
 				
 				Json::FastWriter jsonWriter;
 				Json::Value root;
@@ -382,8 +384,9 @@ void CNetworkInterface::DoProcess(int sock)
 				while(openIDs.end() != itr)
 				{
 					Json::Value valueResult;
-					valueResult["openID"] = Json::Value((*itr).openID.c_str());
-					valueResult["nickname"] = Json::Value((*itr).nickname.c_str());
+					WXUserInfo wxUser = *itr;
+					valueResult["openID"] = Json::Value(wxUser.openID.c_str());
+					valueResult["nickname"] = Json::Value(wxUser.nickname.c_str());
 					root["result"].append(valueResult);
 					itr++;
 				}
@@ -433,6 +436,7 @@ void CNetworkInterface::DoProcess(int sock)
 		}
 		return;
 	}
+	CLog::getInstance()->info("pid %d sock %d recv %s",pid,sock,info.recvbuf);
 	const char* errmsg = "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 13\r\nConnection: close\r\n\r\n404 Not Found";
 	if(memcmp(buf,"GET ",4) == 0 || memcmp(buf,"POST ",5) == 0)
 	{
@@ -659,7 +663,7 @@ void CNetworkInterface::DoProcess(int sock)
 						ret = ProcessInsertQuestion(strMsgContent.c_str(),strAudioUrl.c_str(),answerType);
 						strMsgContent = "";
 					}
-					else if("listfile" == strOperationType)
+					else if("locallist" == strOperationType)
 					{
 						ret = ProcessGetDeviceIDByWX(strOpenID.c_str(),strDeviceID);
 						if(0 == ret)
